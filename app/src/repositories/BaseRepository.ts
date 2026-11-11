@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg';
 
-type SqlValue = string | number | null;
+type SqlValue = string | number | null | number[];
 
 export abstract class BaseRepository {
   constructor(protected readonly client: PoolClient) {}
@@ -16,6 +16,12 @@ export abstract class BaseRepository {
   protected async fromView<T>(view: string, column?: string, value?: SqlValue): Promise<T[]> {
     const sql = column ? `SELECT * FROM ${view} WHERE ${column} = $1` : `SELECT * FROM ${view}`;
     const result = await this.client.query(sql, column ? [value] : []);
+    return result.rows as T[];
+  }
+
+  protected async fromFunction<T>(name: string, args: SqlValue[]): Promise<T[]> {
+    const params = args.map((_, i) => `$${i + 1}`);
+    const result = await this.client.query(`SELECT * FROM ${name}(${params.join(', ')})`, args);
     return result.rows as T[];
   }
 }

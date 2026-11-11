@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import { AthleteRepository } from './repositories/AthleteRepository.js';
+import { MatchReportRepository } from './repositories/MatchReportRepository.js';
 import { TeamMemberRepository } from './repositories/TeamMemberRepository.js';
 import { TeamRepository } from './repositories/TeamRepository.js';
 
@@ -7,11 +8,13 @@ export class UnitOfWork {
   readonly teams: TeamRepository;
   readonly athletes: AthleteRepository;
   readonly teamMembers: TeamMemberRepository;
+  readonly matchReports: MatchReportRepository;
 
   private constructor(private readonly client: PoolClient) {
     this.teams = new TeamRepository(client);
     this.athletes = new AthleteRepository(client);
     this.teamMembers = new TeamMemberRepository(client);
+    this.matchReports = new MatchReportRepository(client);
   }
 
   static async begin(pool: Pool, userId: number): Promise<UnitOfWork> {
