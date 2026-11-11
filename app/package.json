@@ -1,17 +1,19 @@
 {
   "name": "sports-events-nosql",
   "version": "1.0.0",
-  "description": "Протоколи матчів у MongoDB та PostgreSQL, порівняння швидкодії",
+  "description": "Протоколи матчів у MongoDB та PostgreSQL, порівняння швидкодії, демо Redis",
   "type": "module",
   "private": true,
   "scripts": {
     "demo": "tsx src/demo.ts",
     "bench": "tsx src/bench/benchmark.ts",
+    "redis-demo": "tsx src/redis-demo.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "mongodb": "^7.8.0",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "redis": "^6.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
