@@ -1,0 +1,183 @@
+Table roles {
+  id serial [pk]
+  name varchar(50) [not null, unique]
+}
+
+Table users {
+  id serial [pk]
+  role_id int [not null, ref: > roles.id]
+  email varchar(255) [not null, unique]
+  full_name varchar(150) [not null]
+}
+
+Table sports {
+  id serial [pk]
+  name varchar(100) [not null, unique]
+}
+
+Table venues {
+  id serial [pk]
+  name varchar(150) [not null]
+  city varchar(100) [not null]
+  capacity int [not null, note: '> 0']
+}
+
+Table teams {
+  id serial [pk]
+  sport_id int [not null, ref: > sports.id]
+  name varchar(150) [not null]
+  city varchar(100)
+  coach_name varchar(150)
+  updated_at timestamptz [not null]
+  updated_by int [ref: > users.id]
+  is_deleted boolean [not null, default: false]
+  deleted_at timestamptz
+  deleted_by int [ref: > users.id]
+  Note: 'SOFT DELETE + АУДИТ'
+}
+
+Table athletes {
+  id serial [pk]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  birth_date date [not null]
+  email varchar(255)
+  updated_at timestamptz [not null]
+  updated_by int [ref: > users.id]
+  is_deleted boolean [not null, default: false]
+  deleted_at timestamptz
+  deleted_by int [ref: > users.id]
+  Note: 'SOFT DELETE + АУДИТ'
+}
+
+Table team_members {
+  id serial [pk]
+  team_id int [not null, ref: > teams.id]
+  athlete_id int [not null, unique, ref: > athletes.id]
+  jersey_number int [note: '0..99']
+}
+
+Table referees {
+  id serial [pk]
+  sport_id int [not null, ref: > sports.id]
+  full_name varchar(150) [not null]
+}
+
+Table events {
+  id serial [pk]
+  sport_id int [not null, ref: > sports.id]
+  venue_id int [not null, ref: > venues.id]
+  name varchar(200) [not null]
+  start_date date [not null]
+  registration_deadline date [not null]
+  max_teams int [not null]
+  status varchar(20) [not null, note: 'registration | ongoing | finished']
+}
+
+Table event_registrations {
+  id serial [pk]
+  event_id int [not null, ref: > events.id]
+  team_id int [not null, ref: > teams.id]
+  registered_at timestamptz [not null]
+  indexes { (event_id, team_id) [unique] }
+}
+
+Table matches {
+  id serial [pk]
+  event_id int [not null, ref: > events.id]
+  scheduled_at timestamptz [not null]
+  status varchar(20) [not null, note: 'scheduled | finished']
+}
+
+Table match_participants {
+  match_id int [pk, ref: > matches.id]
+  team_id int [pk, ref: > teams.id]
+  is_home boolean [not null]
+  score int
+}
+
+Table match_referees {
+  match_id int [pk, ref: > matches.id]
+  referee_id int [pk, ref: > referees.id]
+}
+
+Table ticket_types {
+  id serial [pk]
+  event_id int [not null, ref: > events.id]
+  name varchar(50) [not null]
+  price numeric(10,2) [not null]
+}
+
+Table tickets {
+  id serial [pk]
+  ticket_type_id int [not null, ref: > ticket_types.id]
+  buyer_email varchar(255) [not null]
+  sold_at timestamptz [not null]
+}
+
+Table sponsors {
+  id serial [pk]
+  name varchar(150) [not null, unique]
+}
+
+Table event_sponsors {
+  event_id int [pk, ref: > events.id]
+  sponsor_id int [pk, ref: > sponsors.id]
+  amount numeric(12,2) [not null]
+}
+
+Table stat_definitions {
+  id serial [pk]
+  sport_id int [not null, ref: > sports.id]
+  code varchar(30) [not null]
+  name varchar(100) [not null]
+
+  indexes {
+    (sport_id, code) [unique]
+  }
+}
+
+Table match_reports {
+  id serial [pk]
+  match_id int [not null, unique, ref: - matches.id]
+  attendance int
+  created_at timestamptz [not null]
+}
+
+Table match_report_periods {
+  report_id int [pk, ref: > match_reports.id]
+  period_no smallint [pk]
+  home_score int [not null]
+  away_score int [not null]
+}
+
+Table match_report_events {
+  id bigserial [pk]
+  report_id int [not null, ref: > match_reports.id]
+  seq int [not null]
+  period_no smallint [not null]
+  minute smallint [not null]
+  event_type varchar(20) [not null, note: 'goal | yellow_card | red_card | substitution | foul | timeout | buzzer_beater']
+  team_id int [not null, ref: > teams.id]
+  athlete_id int [ref: > athletes.id]
+  related_athlete_id int [ref: > athletes.id]
+  points smallint
+  note varchar(30)
+
+  indexes {
+    (report_id, seq) [unique]
+    event_type
+  }
+}
+
+Table player_match_stats {
+  report_id int [pk, ref: > match_reports.id]
+  athlete_id int [pk, ref: > athletes.id]
+  stat_id int [pk, ref: > stat_definitions.id]
+  team_id int [not null, ref: > teams.id]
+  value int [not null]
+
+  indexes {
+    athlete_id
+  }
+}
