@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "demo": "tsx src/demo.ts",
+    "bench": "tsx src/bench/benchmark.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
