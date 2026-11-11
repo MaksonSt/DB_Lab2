@@ -1,10 +1,11 @@
 {
   "name": "sports-events-nosql",
   "version": "1.0.0",
-  "description": "Протоколи матчів у MongoDB та PostgreSQL",
+  "description": "Протоколи матчів у MongoDB та PostgreSQL, порівняння швидкодії",
   "type": "module",
   "private": true,
   "scripts": {
+    "demo": "tsx src/demo.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
