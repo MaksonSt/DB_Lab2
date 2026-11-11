@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:17
+    container_name: sports_events_lab2_db
+    environment:
+      POSTGRES_DB: sports_events
+      POSTGRES_USER: lab
+      POSTGRES_PASSWORD: lab
+    ports:
+      - "55433:5432"
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U lab -d sports_events"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mongo:
+    image: mongo:8
+    container_name: sports_events_lab2_mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lab
+      MONGO_INITDB_ROOT_PASSWORD: lab
+    ports:
+      - "37017:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7
+    container_name: sports_events_lab2_redis
+    ports:
+      - "56379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:
+  mongodata:
