@@ -54,7 +54,7 @@ npm run redis-demo
 Кандидати, які розглядались і були відкинуті: квитки в key-value (втрачаються транзакції й звіти),
 спонсори/склади в графову БД (зв'язки неглибокі, JOIN на двох рівнях PostgreSQL робить швидко).
 
-**Тому вимоги розширено** (`docs/requirements.md`, пп. 10–15): система веде **протоколи матчів**.
+**Тому вимоги розширено**: система веде **протоколи матчів**.
 Протокол — природний кандидат на документну модель:
 
 | Властивість даних | Наслідок |
@@ -242,7 +242,6 @@ Redis не замінює ні PostgreSQL, ні MongoDB: дані live-шару 
 docker-compose.yml        PostgreSQL 17, MongoDB 8, Redis 7
 sql/01–07                 схема, функції, тригери, view, процедури, індекси, seed з ЛР 1
 sql/08–12                 протоколи матчів: таблиці, view і функції, процедури, індекси, довідник показників
-docs/requirements.md      вимоги (ЛР 1 + розширення)
 docs/schema.dbml          схема для dbdiagram.io
 app/src/models.ts         моделі, інтерфейс MatchReportStore
 app/src/repositories      Repository + Unit of Work (PostgreSQL)

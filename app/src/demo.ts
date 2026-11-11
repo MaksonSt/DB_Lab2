@@ -35,7 +35,7 @@ function preview(report: MatchReport) {
 }
 
 async function main() {
-  console.log('\n=== 0. Підготовка: 40 матчів у PostgreSQL, протоколи в обидві бази ===');
+  console.log('\n0. Підготовка: 40 матчів у PostgreSQL, протоколи в обидві бази');
   await mongoClient.connect();
   const collection = matchReports();
   await collection.drop().catch(() => undefined);
@@ -52,13 +52,13 @@ async function main() {
   console.log(`PostgreSQL: ${(await pool.query('SELECT count(*)::INT AS n FROM match_reports')).rows[0].n} протоколів, ` +
     `${(await pool.query('SELECT count(*)::INT AS n FROM player_match_stats')).rows[0].n} рядків статистики`);
 
-  console.log('\n=== 1. Структура протоколу залежить від виду спорту (MongoDB) ===');
+  console.log('\n1. Структура протоколу залежить від виду спорту (MongoDB)');
   const footballId = fixture.slots.find((s) => s.sportId === FOOTBALL)!.matchId;
   const basketballId = fixture.slots.find((s) => s.sportId === BASKETBALL)!.matchId;
   console.dir(preview((await mongo.getByMatchId(footballId))!), { depth: 3 });
   console.dir(preview((await mongo.getByMatchId(basketballId))!), { depth: 3 });
 
-  console.log('\n=== 2. Той самий протокол, зібраний із 5 таблиць PostgreSQL (v_match_reports) ===');
+  console.log('\n2. Той самий протокол, зібраний із 5 таблиць PostgreSQL (v_match_reports)');
   let equal = 0;
   await UnitOfWork.run(pool, ORGANIZER, async (uow) => {
     for (const slot of fixture.slots) {
@@ -69,7 +69,7 @@ async function main() {
   });
   console.log(`Протоколи в обох базах ідентичні: ${equal} з ${fixture.slots.length}`);
 
-  console.log('\n=== 3. Агрегації: найкращі гравці турніру ===');
+  console.log('\n3. Агрегації: найкращі гравці турніру');
   const footballEvent = fixture.slots.find((s) => s.sportId === FOOTBALL)!.eventId;
   const basketballEvent = fixture.slots.find((s) => s.sportId === BASKETBALL)!.eventId;
   await UnitOfWork.run(pool, ORGANIZER, async (uow) => {
@@ -83,7 +83,7 @@ async function main() {
     console.table(await mongo.cardsPerEvent());
   });
 
-  console.log('\n=== 4. Оновлення: гол на 90+3 хвилині ===');
+  console.log('\n4. Оновлення: гол на 90+3 хвилині');
   const report = (await mongo.getByMatchId(footballId))!;
   const scorer = report.playerStats.find((p) => p.teamId === report.teams[0].teamId)!;
   const goal = { period: 2, minute: 93, type: 'goal' as const, teamId: scorer.teamId, athleteId: scorer.athleteId, note: 'header' };
@@ -98,7 +98,7 @@ async function main() {
     console.log('Протоколи після оновлення ідентичні:', same(fromPg, fromMongo) ? 'так' : 'ні');
   });
 
-  console.log('\n=== 5. Unit of Work: помилка -> ROLLBACK (PostgreSQL) ===');
+  console.log('\n5. Unit of Work: помилка -> ROLLBACK (PostgreSQL)');
   try {
     await UnitOfWork.run(pool, ORGANIZER, async (uow) => {
       await uow.matchReports.addEvent(footballId, { ...goal, minute: 94 }, 'goals');
@@ -112,7 +112,7 @@ async function main() {
     console.log(`Подій у протоколі: ${events} (гол на 94 хв скасовано)`);
   });
 
-  console.log('\n=== 6. Гнучкість схеми проти цілісності ===');
+  console.log('\n6. Гнучкість схеми проти цілісності');
   const odd = generateReport(fixture.slots[1]);
   odd.playerStats[0].stats.dunks = 2;
   await mongo.deleteByMatchIds([odd.matchId]);
