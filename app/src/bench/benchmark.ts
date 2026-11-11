@@ -38,6 +38,7 @@ function median(values: number[]): number {
 const round = (value: number) => Math.round(value * 100) / 100;
 
 async function storage(size: number): Promise<StorageSize> {
+  await mongoClient.db('admin').command({ fsync: 1 });
   const pg = await pool.query<{ bytes: string }>(
     `SELECT sum(pg_total_relation_size(t))::BIGINT AS bytes
      FROM unnest(ARRAY['match_reports', 'match_report_periods', 'match_report_events', 'player_match_stats']) t`);

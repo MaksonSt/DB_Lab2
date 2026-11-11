@@ -1,0 +1,228 @@
+{
+  "runs": 7,
+  "results": [
+    {
+      "size": 1000,
+      "scenario": "insert_one",
+      "title": "Вставка протоколів по одному",
+      "ops": 100,
+      "postgres": 1320.92,
+      "mongo": 474.93
+    },
+    {
+      "size": 1000,
+      "scenario": "insert_bulk",
+      "title": "Пакетна вставка протоколів",
+      "ops": 1000,
+      "postgres": 9963.41,
+      "mongo": 368.04
+    },
+    {
+      "size": 1000,
+      "scenario": "read_full",
+      "title": "Читання цілого протоколу за matchId",
+      "ops": 200,
+      "postgres": 742.41,
+      "mongo": 350.39
+    },
+    {
+      "size": 1000,
+      "scenario": "read_filter",
+      "title": "Матчі події з певним типом події в хронології",
+      "ops": 20,
+      "postgres": 68.34,
+      "mongo": 43.8
+    },
+    {
+      "size": 1000,
+      "scenario": "agg_top_players",
+      "title": "Топ-10 гравців події (голи / очки)",
+      "ops": 20,
+      "postgres": 206.96,
+      "mongo": 121.11
+    },
+    {
+      "size": 1000,
+      "scenario": "agg_athlete",
+      "title": "Середні показники спортсмена за всі матчі",
+      "ops": 50,
+      "postgres": 97.86,
+      "mongo": 177.77
+    },
+    {
+      "size": 1000,
+      "scenario": "agg_cards",
+      "title": "Картки по всіх подіях (повний прохід)",
+      "ops": 3,
+      "postgres": 20.57,
+      "mongo": 36.6
+    },
+    {
+      "size": 1000,
+      "scenario": "update_add_event",
+      "title": "Додати подію в хронологію + показник гравця",
+      "ops": 200,
+      "postgres": 501.03,
+      "mongo": 879.98
+    },
+    {
+      "size": 1000,
+      "scenario": "update_attendance",
+      "title": "Оновити поле заголовка (відвідуваність)",
+      "ops": 200,
+      "postgres": 388.14,
+      "mongo": 346.54
+    },
+    {
+      "size": 10000,
+      "scenario": "insert_one",
+      "title": "Вставка протоколів по одному",
+      "ops": 100,
+      "postgres": 1187.51,
+      "mongo": 438.84
+    },
+    {
+      "size": 10000,
+      "scenario": "insert_bulk",
+      "title": "Пакетна вставка протоколів",
+      "ops": 1000,
+      "postgres": 9714.29,
+      "mongo": 380.38
+    },
+    {
+      "size": 10000,
+      "scenario": "read_full",
+      "title": "Читання цілого протоколу за matchId",
+      "ops": 200,
+      "postgres": 748.53,
+      "mongo": 317.51
+    },
+    {
+      "size": 10000,
+      "scenario": "read_filter",
+      "title": "Матчі події з певним типом події в хронології",
+      "ops": 20,
+      "postgres": 226.28,
+      "mongo": 158.72
+    },
+    {
+      "size": 10000,
+      "scenario": "agg_top_players",
+      "title": "Топ-10 гравців події (голи / очки)",
+      "ops": 20,
+      "postgres": 873.65,
+      "mongo": 576.56
+    },
+    {
+      "size": 10000,
+      "scenario": "agg_athlete",
+      "title": "Середні показники спортсмена за всі матчі",
+      "ops": 50,
+      "postgres": 181.71,
+      "mongo": 701.56
+    },
+    {
+      "size": 10000,
+      "scenario": "agg_cards",
+      "title": "Картки по всіх подіях (повний прохід)",
+      "ops": 3,
+      "postgres": 88.63,
+      "mongo": 318.17
+    },
+    {
+      "size": 10000,
+      "scenario": "update_add_event",
+      "title": "Додати подію в хронологію + показник гравця",
+      "ops": 200,
+      "postgres": 484.99,
+      "mongo": 801.06
+    },
+    {
+      "size": 10000,
+      "scenario": "update_attendance",
+      "title": "Оновити поле заголовка (відвідуваність)",
+      "ops": 200,
+      "postgres": 425.75,
+      "mongo": 353.39
+    },
+    {
+      "size": 50000,
+      "scenario": "insert_one",
+      "title": "Вставка протоколів по одному",
+      "ops": 100,
+      "postgres": 1169.17,
+      "mongo": 400.4
+    },
+    {
+      "size": 50000,
+      "scenario": "insert_bulk",
+      "title": "Пакетна вставка протоколів",
+      "ops": 1000,
+      "postgres": 9263.06,
+      "mongo": 426.13
+    },
+    {
+      "size": 50000,
+      "scenario": "read_full",
+      "title": "Читання цілого протоколу за matchId",
+      "ops": 200,
+      "postgres": 864.08,
+      "mongo": 331.85
+    },
+    {
+      "size": 50000,
+      "scenario": "read_filter",
+      "title": "Матчі події з певним типом події в хронології",
+      "ops": 20,
+      "postgres": 1085.17,
+      "mongo": 519.88
+    },
+    {
+      "size": 50000,
+      "scenario": "agg_top_players",
+      "title": "Топ-10 гравців події (голи / очки)",
+      "ops": 20,
+      "postgres": 5010.02,
+      "mongo": 2863.94
+    },
+    {
+      "size": 50000,
+      "scenario": "agg_athlete",
+      "title": "Середні показники спортсмена за всі матчі",
+      "ops": 50,
+      "postgres": 1090.7,
+      "mongo": 3239.45
+    },
+    {
+      "size": 50000,
+      "scenario": "agg_cards",
+      "title": "Картки по всіх подіях (повний прохід)",
+      "ops": 3,
+      "postgres": 531.69,
+      "mongo": 1726.66
+    },
+    {
+      "size": 50000,
+      "scenario": "update_add_event",
+      "title": "Додати подію в хронологію + показник гравця",
+      "ops": 200,
+      "postgres": 537.62,
+      "mongo": 868.98
+    },
+    {
+      "size": 50000,
+      "scenario": "update_attendance",
+      "title": "Оновити поле заголовка (відвідуваність)",
+      "ops": 200,
+      "postgres": 445.3,
+      "mongo": 291.84
+    }
+  ],
+  "sizes": [
+    {
+      "size": 50000,
+      "postgresMb": 1198.4,
+      "mongoMb": 121.3
+    }
+  ]
+}
