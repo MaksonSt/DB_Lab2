@@ -11,6 +11,14 @@
 docker compose up -d --wait
 ```
 
+```bash
+cd app
+npm install
+npm run demo
+npm run bench
+npm run redis-demo
+```
+
 | База | Адреса | Логін / пароль |
 |---|---|---|
 | PostgreSQL | `localhost:55433`, БД `sports_events` | `lab` / `lab` |
@@ -18,6 +26,8 @@ docker compose up -d --wait
 | Redis | `localhost:56379` | — |
 
 Порти відрізняються від ЛР 1, тому обидва проєкти можна запускати одночасно.
+`npm run bench` за замовчуванням міряє 1 000 / 10 000 / 50 000 протоколів (близько 30 хв);
+швидкий прогін: `BENCH_SIZES=1000,5000 BENCH_RUNS=3 npm run bench`.
 
 ## Що зроблено
 
@@ -58,3 +68,141 @@ docker compose up -d --wait
 
 Для **live-даних матчу** (табло, стрічка, лічильники, рейтинг) доречна key-value БД — п. 6.
 
+### 3. Реалізація в MongoDB
+
+Обрано **документну БД MongoDB**: протокол — це агрегат, який читається одним запитом без JOIN; гнучка
+схема знімає проблему різних наборів полів для різних видів спорту; aggregation pipeline (`$unwind`,
+`$group`) покриває турнірну аналітику; є вторинні й multikey-індекси по полях вкладених масивів.
+Колонкова БД (Cassandra) тут гірша: потрібні запити наперед, немає гнучких агрегацій; графова — не та
+форма даних; key-value — немає запитів за вмістом.
+
+Документ (`app/src/models.ts`, `MatchReport`), скорочено:
+
+```json
+{
+  "matchId": 2, "eventId": 8, "sportId": 1, "sport": "Футбол",
+  "playedAt": "2025-06-14T18:00:00Z", "attendance": 23810,
+  "teams":   [{ "teamId": 23, "name": "ФК Ген-19", "isHome": true, "score": 3 }, { "...": "..." }],
+  "periods": [{ "number": 1, "home": 1, "away": 0 }, { "number": 2, "home": 2, "away": 3 }],
+  "timeline": [
+    { "period": 1, "minute": 7,  "type": "yellow_card",  "teamId": 23, "athleteId": 334 },
+    { "period": 1, "minute": 31, "type": "goal", "teamId": 23, "athleteId": 336, "relatedAthleteId": 341, "note": "header" },
+    { "period": 2, "minute": 62, "type": "substitution", "teamId": 24, "athleteId": 360, "relatedAthleteId": 352 }
+  ],
+  "playerStats": [
+    { "athleteId": 331, "name": "Денис Руденко", "teamId": 23,
+      "stats": { "minutes": 90, "goals": 0, "assists": 0, "shots": 2, "passes": 63, "fouls": 2, "saves": 0 } }
+  ]
+}
+```
+
+У баскетбольному протоколі 4 періоди, у хронології `foul` з `note`, `timeout` без `athleteId`,
+`buzzer_beater` з `points`, а `stats` містить `points`, `rebounds`, `steals`, `blocks`, `threes`…
+
+- підключення та індекси: `app/src/mongo/mongo.ts`;
+- репозиторій: `app/src/mongo/MongoMatchReportRepository.ts` (`insertOne/insertMany`, `findOne`,
+  `aggregate`, `updateOne` з `$push` + `$inc` і `arrayFilters`, `$set`, `deleteMany`);
+- запис з `writeConcern { w: 1, j: true }` — підтвердження після запису в журнал, як `COMMIT` у PostgreSQL.
+
+### 4. Те саме в PostgreSQL
+
+Документ розкладено на 5 таблиць (`sql/08_match_reports.sql`), з посиланнями на таблиці ЛР 1:
+
+| Частина документа | Таблиця | Примітка |
+|---|---|---|
+| `matchId`, `attendance` | `match_reports` | 1 рядок на матч, `UNIQUE (match_id)` |
+| `eventId`, `sport`, `playedAt`, `teams[]` (рахунок) | `matches`, `events`, `sports`, `match_participants`, `teams` | уже є в ЛР 1 |
+| `periods[]` | `match_report_periods` | PK `(report_id, period_no)` |
+| `timeline[]` | `match_report_events` | `seq` зберігає порядок; поля, специфічні для спорту (`related_athlete_id`, `points`, `note`) — nullable |
+| `playerStats[].stats{}` | `player_match_stats` + `stat_definitions` | EAV: рядок на кожен показник гравця; довідник показників по видах спорту |
+| `playerStats[].name` | `athletes` | у SQL не дублюється |
+
+Доступ — як у ЛР 1: зміни лише через процедури, читання через view та функції (`sql/09`, `sql/10`):
+
+- `sp_match_reports_import(jsonb)` — вставка одного або пакета протоколів одним set-based запитом;
+- `sp_match_report_add_event`, `sp_match_report_set_attendance`, `sp_match_reports_delete`;
+- `v_match_reports` — збирає з 5+ таблиць документ тієї ж форми, що в MongoDB;
+- `fn_event_top_players`, `fn_athlete_stat_averages`, `fn_event_matches_with`, `v_event_card_counts`.
+
+Репозиторій `MatchReportRepository` реалізує той самий інтерфейс `MatchReportStore`, що й Mongo-репозиторій,
+і доданий в `UnitOfWork`. `npm run demo` показує:
+
+1. футбольний і баскетбольний протоколи (різна структура);
+2. що протоколи, зібрані з PostgreSQL, **ідентичні** документам MongoDB (40 з 40);
+3. однакові результати агрегацій в обох БД;
+4. оновлення (гол на 90+3) в обох БД;
+5. ROLLBACK у `UnitOfWork`;
+6. гнучкість проти цілісності: MongoDB приймає новий показник `dunks` без змін схеми,
+   PostgreSQL відхиляє протокол, доки показник не додано в `stat_definitions`.
+
+### 5. Порівняння швидкодії
+
+**Методика** (`app/src/bench`):
+
+- однакові дані: детермінований генератор (`app/src/generator`) створює в PostgreSQL 20 подій, 48 команд,
+  720 спортсменів і матчі, а потім однакові протоколи для обох БД (~180 показників і 15–60 подій на протокол);
+- обсяги: 1 000, 10 000, 50 000 протоколів у базі; на кожному обсязі — однаковий набір сценаріїв;
+- однакові індекси:
+
+  | Призначення | PostgreSQL | MongoDB |
+  |---|---|---|
+  | протокол за матчем | `ux_match_reports_match_id` | `{ matchId: 1 }` unique |
+  | фільтр за подією | `ix_matches_event_id` | `{ eventId: 1 }` |
+  | статистика спортсмена | `ix_player_match_stats_athlete_id` | `{ "playerStats.athleteId": 1 }` |
+  | тип події в хронології | `ix_match_report_events_type` | `{ "timeline.type": 1 }` |
+
+- 1 прогрів + 7 вимірюваних прогонів, у таблиці — **медіана**; порядок БД чергується між прогонами;
+  вставлені в сценаріях вставки протоколи видаляються після кожного прогону (поза заміром);
+- однакова довговічність: PostgreSQL `synchronous_commit = on`, MongoDB `j: true`;
+- після кожного завантаження — `VACUUM ANALYZE`; після сценаріїв — перевірка, що агрегації в обох БД збігаються.
+
+| Сценарій | Що перевіряє |
+|---|---|
+| Вставка по одному (100) | типовий запис протоколу після матчу |
+| Пакетна вставка (1 000) | імпорт сезону / міграція |
+| Читання цілого протоколу (200) | сторінка матчу — головний сценарій читання |
+| Матчі з певною подією (20 подій) | фільтр за полем вкладеного масиву |
+| Топ-10 гравців події (20) | агрегація по підмножині (індекс за подією) |
+| Середні показники спортсмена (50) | агрегація «впоперек» документів (індекс по вкладеному полю) |
+| Картки по всіх подіях (3) | агрегація з проходом по всіх даних |
+| Додати подію + показник (200) | зміна вкладених масивів |
+| Оновити відвідуваність (200) | зміна поля заголовка |
+
+### 6. Redis (key-value)
+
+`npm run redis-demo` (`app/src/redis-demo.ts`) — live-шар матчу. Усі ключі мають префікс `lab2:`
+і видаляються наприкінці.
+
+| Структура | Команди | Застосування |
+|---|---|---|
+| String + TTL | `SET … EX`, `GET`, `TTL` | кеш картки матчу на 30 с |
+| String-лічильник | `INCR`, `INCRBY`, `DECR` | продані квитки (атомарно, без гонок) |
+| Hash | `HSET`, `HGET`, `HGETALL`, `HINCRBY` | live-табло: рахунок, хвилина, статус |
+| List | `LPUSH`, `LTRIM`, `LRANGE`, `LLEN` | стрічка останніх 5 подій |
+| Set | `SADD`, `SCARD`, `SISMEMBER`, `SINTER` | підписники матчів, спільні підписники |
+| Sorted set | `ZADD`, `ZINCRBY`, `ZRANGE … REV WITHSCORES`, `ZREVRANK`, `ZSCORE` | рейтинг бомбардирів |
+| String + `NX EX` | `SET key val NX EX 600` | бронювання місця на 10 хв: друга спроба повертає `null` |
+| Транзакція | `MULTI` / `EXEC` | гол атомарно змінює табло, стрічку й рейтинг |
+| Pub/Sub | `SUBSCRIBE`, `PUBLISH` | сповіщення про гол підписникам |
+| Ітерація | `SCAN MATCH lab2:*`, `DEL` | пошук і очищення ключів без блокування сервера |
+
+Redis не замінює ні PostgreSQL, ні MongoDB: дані live-шару тимчасові (TTL), а після матчу фінальний
+стан записується протоколом у документну БД.
+
+## Структура
+
+```
+docker-compose.yml        PostgreSQL 17, MongoDB 8, Redis 7
+sql/01–07                 схема, функції, тригери, view, процедури, індекси, seed з ЛР 1
+sql/08–12                 протоколи матчів: таблиці, view і функції, процедури, індекси, довідник показників
+docs/requirements.md      вимоги (ЛР 1 + розширення)
+docs/schema.dbml          схема для dbdiagram.io
+app/src/models.ts         моделі, інтерфейс MatchReportStore
+app/src/repositories      Repository + Unit of Work (PostgreSQL)
+app/src/mongo             підключення, індекси, репозиторій MongoDB
+app/src/generator         детермінований генератор даних
+app/src/bench             сценарії й запуск бенчмарку
+app/src/demo.ts           демо MongoDB vs PostgreSQL
+app/src/redis-demo.ts     демо Redis
+results/                  результати бенчмарку (md, json)
+```
